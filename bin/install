@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+GH_REPO="shader-slang/slang"
+
+fail() {
+  echo "shader-slang: $*" >&2
+  exit 1
+}
+
+get_os() {
+  case "$(uname -s)" in
+    Darwin) echo "macos" ;;
+    Linux)  echo "linux" ;;
+    *)
+      fail "unsupported OS: $(uname -s) (supported: macos, linux)"
+      ;;
+  esac
+}
+
+get_arch() {
+  case "$(uname -m)" in
+    x86_64|amd64) echo "x86_64" ;;
+    arm64|aarch64) echo "aarch64" ;;
+    *)
+      fail "unsupported arch: $(uname -m) (supported: x86_64, aarch64)"
+      ;;
+  esac
+}
+
+ensure_unzip() {
+  if ! command -v unzip >/dev/null 2>&1; then
+    fail "unzip is required but not installed"
+  fi
+}
+
+main() {
+  : "${ASDF_INSTALL_VERSION:?ASDF_INSTALL_VERSION is not set}"
+  : "${ASDF_INSTALL_PATH:?ASDF_INSTALL_PATH is not set}"
+  : "${ASDF_DOWNLOAD_PATH:?ASDF_DOWNLOAD_PATH is not set}"
+
+  local version="$ASDF_INSTALL_VERSION"
+  local install_path="$ASDF_INSTALL_PATH"
+  local download_path="$ASDF_DOWNLOAD_PATH"
+
+  local os arch filename archive
+
+  os="$(get_os)"
+  arch="$(get_arch)"
+  filename="slang-${version}-${os}-${arch}.zip"
+  archive="${download_path}/${filename}"
+
+  if [ ! -f "${archive}" ]; then
+    # asdf 0.16+ だと原則 bin/download が先に呼ばれる想定ですが、
+    # 念のためここでも fallback でダウンロードしておく
+    echo "shader-slang: archive not found at ${archive}, downloading..."
+    GH_URL="https://github.com/${GH_REPO}/releases/download/v${version}/${filename}"
+    mkdir -p "${download_path}"
+    curl -fL --retry 3 --retry-delay 1 \
+      -o "${archive}" \
+      "${GH_URL}" \
+      || fail "failed to download ${GH_URL}"
+  fi
+
+  ensure_unzip
+
+  echo "shader-slang: installing ${version} into ${install_path}"
+  rm -rf "${install_path}"
+  mkdir -p "${install_path}"
+
+  unzip -q "${archive}" -d "${install_path}"
+
+  # 念のため実行ビットを付けておく
+  if [ -d "${install_path}/bin" ]; then
+    chmod +x "${install_path}/bin/"* 2>/dev/null || true
+  fi
+
+  echo "shader-slang: installation complete"
+}
+
+main "$@"

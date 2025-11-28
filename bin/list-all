@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+GH_REPO="shader-slang/slang"
+GH_API="https://api.github.com/repos/${GH_REPO}/releases?per_page=100"
+
+# asdf / mise: `asdf list-all shader-slang` / `mise ls-remote shader-slang`
+# 用のスクリプト。利用可能なバージョンを 1 行ずつ出力する。
+
+main() {
+  curl -fsSL "${GH_API}" \
+    | grep -oE '"tag_name": *"v[0-9\.]+"' \
+    | sed -E 's/.*"v([0-9\.]+)".*/\1/'
+    # GitHub API は新しい順で返すので、特にソートしていません
+}
+
+main "$@"

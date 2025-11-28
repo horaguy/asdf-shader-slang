@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+GH_REPO="shader-slang/slang"
+
+fail() {
+  echo "shader-slang: $*" >&2
+  exit 1
+}
+
+get_os() {
+  case "$(uname -s)" in
+    Darwin) echo "macos" ;;
+    Linux)  echo "linux" ;;
+    *)
+      fail "unsupported OS: $(uname -s) (supported: macos, linux)"
+      ;;
+  esac
+}
+
+get_arch() {
+  case "$(uname -m)" in
+    x86_64|amd64) echo "x86_64" ;;
+    arm64|aarch64) echo "aarch64" ;;
+    *)
+      fail "unsupported arch: $(uname -m) (supported: x86_64, aarch64)"
+      ;;
+  esac
+}
+
+main() {
+  : "${ASDF_INSTALL_VERSION:?ASDF_INSTALL_VERSION is not set}"
+  : "${ASDF_DOWNLOAD_PATH:?ASDF_DOWNLOAD_PATH is not set}"
+
+  local version="$ASDF_INSTALL_VERSION"
+  local os arch filename url
+
+  os="$(get_os)"
+  arch="$(get_arch)"
+
+  filename="slang-${version}-${os}-${arch}.zip"
+  url="https://github.com/${GH_REPO}/releases/download/v${version}/${filename}"
+
+  mkdir -p "${ASDF_DOWNLOAD_PATH}"
+
+  echo "shader-slang: downloading ${url}"
+  curl -fL --retry 3 --retry-delay 1 \
+    -o "${ASDF_DOWNLOAD_PATH}/${filename}" \
+    "${url}" \
+    || fail "failed to download ${url}"
+}
+
+main "$@"
