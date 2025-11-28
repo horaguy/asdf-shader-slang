@@ -51,8 +51,6 @@ main() {
   archive="${download_path}/${filename}"
 
   if [ ! -f "${archive}" ]; then
-    # asdf 0.16+ だと原則 bin/download が先に呼ばれる想定ですが、
-    # 念のためここでも fallback でダウンロードしておく
     echo "shader-slang: archive not found at ${archive}, downloading..."
     GH_URL="https://github.com/${GH_REPO}/releases/download/v${version}/${filename}"
     mkdir -p "${download_path}"
@@ -70,7 +68,6 @@ main() {
 
   unzip -q "${archive}" -d "${install_path}"
 
-  # 念のため実行ビットを付けておく
   if [ -d "${install_path}/bin" ]; then
     chmod +x "${install_path}/bin/"* 2>/dev/null || true
   fi
